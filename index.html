@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal & Timer Presentasi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc;
+        }
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+        .progress-bar-transition {
+            transition: width 1s linear;
+        }
+        /* Styling untuk input time agar ikon jam di browser terlihat baik di dark mode */
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center overflow-x-hidden selection:bg-blue-500 selection:text-white">
+
+    <!-- VIEW 1: DASHBOARD / TABEL JADWAL -->
+    <div id="schedule-view" class="w-full max-w-6xl p-6 transition-all duration-500 ease-in-out opacity-100 py-10">
+        
+        <!-- Header & Widgets -->
+        <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-6">
+            <div>
+                <h1 class="text-3xl md:text-5xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500">
+                    Raising The Bar Timer
+                </h1>
+                <p id="total-duration-display" class="text-slate-400 text-lg font-medium">Total Waktu: Menghitung...</p>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                <!-- Real-time Clock -->
+                <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex flex-col justify-center min-w-[160px] shadow-lg backdrop-blur-sm">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Waktu Saat Ini</span>
+                    <span id="real-time-clock" class="text-2xl font-bold text-white tabular-nums tracking-tight">00:00:00</span>
+                </div>
+                
+                <!-- Start Time Input -->
+                <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex flex-col justify-center min-w-[180px] shadow-lg backdrop-blur-sm">
+                    <label for="start-time-input" class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Waktu Start Presentasi</label>
+                    <input type="time" id="start-time-input" value="08:30" class="bg-slate-900 text-white text-xl font-bold border border-slate-600 rounded px-2 py-1 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all tabular-nums">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Agenda -->
+        <div class="bg-slate-800/50 rounded-2xl shadow-2xl overflow-hidden border border-slate-700 mb-8 backdrop-blur-md">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="bg-slate-900 text-slate-300 uppercase text-xs font-bold tracking-wider">
+                            <th class="p-4 border-b border-slate-700 w-32 text-center">Waktu</th>
+                            <th class="p-4 border-b border-slate-700 w-1/4">Agenda Sesi</th>
+                            <th class="p-4 border-b border-slate-700 w-2/5">Aktivitas</th>
+                            <th class="p-4 border-b border-slate-700 w-32 text-center">Durasi (Menit)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="agenda-table-body" class="divide-y divide-slate-700/50">
+                        <!-- Baris tabel di-generate oleh JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="flex justify-center mt-10">
+            <button id="btn-start-presentation" class="group relative px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full text-xl shadow-[0_0_30px_-5px_rgba(37,99,235,0.6)] transition-all hover:scale-105 hover:shadow-[0_0_50px_-10px_rgba(37,99,235,0.8)] flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Mulai Presentasi
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 2: TIMER LAYAR PENUH -->
+    <div id="timer-view" class="fixed inset-0 bg-slate-900 flex flex-col justify-between hidden z-50">
+        
+        <!-- Progress Bar -->
+        <div class="w-full h-2 bg-slate-800">
+            <div id="item-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 progress-bar-transition w-0"></div>
+        </div>
+
+        <!-- Bagian Atas: Judul Sesi -->
+        <div class="text-center pt-16 px-6 flex-shrink-0">
+            <p class="text-blue-400 font-semibold tracking-widest uppercase text-sm md:text-base mb-3 animate-pulse">Sesi Saat Ini</p>
+            <h2 id="current-title" class="text-4xl md:text-6xl font-bold text-white drop-shadow-md line-clamp-2 max-w-5xl mx-auto">
+                Judul Agenda
+            </h2>
+        </div>
+
+        <!-- Bagian Tengah: Timer -->
+        <div class="flex-grow flex items-center justify-center p-4">
+            <div id="countdown-display" class="text-[7rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] font-bold leading-none tabular-nums tracking-tighter text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)] transition-colors duration-300">
+                00:00
+            </div>
+        </div>
+
+        <!-- Bagian Bawah: Next & Controls -->
+        <div class="pb-12 px-6 flex flex-col items-center flex-shrink-0 gap-8">
+            
+            <!-- Info Agenda Selanjutnya -->
+            <div class="text-center">
+                <p id="next-title-container" class="text-slate-400 text-xl md:text-2xl bg-slate-800/50 px-6 py-2 rounded-full border border-slate-700/50">
+                    <span class="opacity-70">Next:</span> 
+                    <span id="next-title" class="font-semibold text-slate-200 ml-2">Judul Berikutnya</span>
+                </p>
+            </div>
+
+            <!-- Tombol Kontrol -->
+            <div class="flex items-center gap-4 md:gap-6">
+                <!-- Akhiri -->
+                <button id="btn-stop" class="px-6 py-4 rounded-full bg-slate-800 text-red-400 hover:bg-red-500/20 border border-slate-700 hover:border-red-500/50 font-semibold transition-all flex items-center gap-2" title="Hentikan Timer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                    </svg>
+                    Akhiri
+                </button>
+
+                <!-- Pause / Resume -->
+                <button id="btn-pause" class="w-48 py-4 rounded-full bg-white text-slate-900 hover:bg-slate-200 font-bold text-xl flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                    <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span id="text-pause">Pause</span>
+                </button>
+
+                <!-- Next -->
+                <button id="btn-next" class="px-6 py-4 rounded-full bg-slate-800 text-white hover:bg-slate-700 border border-slate-700 font-semibold transition-all flex items-center gap-2" title="Lompat ke Sesi Berikutnya">
+                    Next
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Peringatan Selesai -->
+    <div id="finished-overlay" class="fixed inset-0 bg-slate-900/95 flex flex-col items-center justify-center z-[60] hidden backdrop-blur-xl">
+        <h1 class="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 mb-6">Presentasi Selesai!</h1>
+        <p class="text-xl text-slate-300 mb-10 text-center max-w-lg">Seluruh agenda telah diselesaikan.</p>
+        <button id="btn-back-home" class="px-8 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-white font-bold transition-colors">
+            Kembali ke Dashboard
+        </button>
+    </div>
+
+    <script>
+        // Data Default Berdasarkan Permintaan
+        const agendaData = [
+            { id: 1, title: "Warm Up", durationMinutes: 15, activity: "Sambutan, pengecekan audio/visual, ice breaking, dan penyampaian garis besar agenda presentasi hari ini." },
+            { id: 2, title: "XLSMART as a Hyper-Performing Company", durationMinutes: 45, activity: "Pembahasan materi inti pertama. Sisihkan 10 menit terakhir untuk sesi Q&A." },
+            { id: 3, title: "Coffee Break / Jeda", durationMinutes: 15, activity: "Istirahat sejenak agar audiens dapat meregangkan otot, ketoilet, dan mengembalikan fokus." },
+            { id: 4, title: "Creating a Learning Environment for Innovation", durationMinutes: 40, activity: "Pemaparan strategi dan contoh budaya inovasi. Fokuskan pada diskusi interaktif." },
+            { id: 5, title: "Building Greater Empowerment & Accountability", durationMinutes: 35, activity: "Pemaparan materi inti terakhir. Sertakan ruang untuk audiens bertanya." },
+            { id: 6, title: "Quiz", durationMinutes: 15, activity: "Pelaksanaan kuis interaktif untuk menguji pemahaman audiens." },
+            { id: 7, title: "Reflections and Closing", durationMinutes: 15, activity: "Meminta peserta membagikan insight, merangkum kesimpulan akhir, dan penutupan acara." }
+        ];
+
+        // State Variables
+        let currentIndex = 0;
+        let totalSecondsCurrentItem = 0;
+        let secondsLeft = 0;
+        let timerInterval = null;
+        let isPaused = false;
+
+        // DOM Elements
+        const scheduleView = document.getElementById('schedule-view');
+        const timerView = document.getElementById('timer-view');
+        const finishedOverlay = document.getElementById('finished-overlay');
+        const agendaTableBody = document.getElementById('agenda-table-body');
+        const startTimeInput = document.getElementById('start-time-input');
+        
+        // Timer DOM
+        const currentTitleEl = document.getElementById('current-title');
+        const countdownDisplayEl = document.getElementById('countdown-display');
+        const nextTitleEl = document.getElementById('next-title');
+        const nextTitleContainerEl = document.getElementById('next-title-container');
+        const progressBarEl = document.getElementById('item-progress-bar');
+        
+        // Buttons
+        const btnStart = document.getElementById('btn-start-presentation');
+        const btnPause = document.getElementById('btn-pause');
+        const btnNext = document.getElementById('btn-next');
+        const btnStop = document.getElementById('btn-stop');
+        const btnBackHome = document.getElementById('btn-back-home');
+        
+        const iconPause = document.getElementById('icon-pause');
+        const textPause = document.getElementById('text-pause');
+
+        // SVG Icons untuk Pause/Resume
+        const svgPause = `<path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />`;
+        const svgPlay = `<path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />`;
+
+        // ==========================================
+        // FITUR DASHBOARD (Jam & Tabel)
+        // ==========================================
+
+        // Update Jam Real-Time
+        function updateRealTimeClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('real-time-clock').textContent = timeString.replace(/\./g, ':');
+        }
+        setInterval(updateRealTimeClock, 1000);
+        updateRealTimeClock();
+
+        // Helper untuk Kalkulasi Waktu (HH:MM + Menit)
+        function addMinutesToTime(timeStr, minutesToAdd) {
+            if (!timeStr) return "00:00";
+            let [hours, minutes] = timeStr.split(':').map(Number);
+            let date = new Date();
+            date.setHours(hours, minutes, 0, 0);
+            date.setMinutes(date.getMinutes() + minutesToAdd);
+            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // Render Ulang Tabel Jadwal
+        function renderTable() {
+            agendaTableBody.innerHTML = '';
+            let currentCalculatedTime = startTimeInput.value;
+
+            agendaData.forEach((item, index) => {
+                const endTime = addMinutesToTime(currentCalculatedTime, item.durationMinutes);
+                
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-700/40 transition-colors group';
+                tr.innerHTML = `
+                    <td class="p-4 border-b border-slate-700/50 text-center font-mono text-sm text-slate-300 whitespace-nowrap bg-slate-800/20">
+                        ${currentCalculatedTime} - ${endTime}
+                    </td>
+                    <td class="p-4 border-b border-slate-700/50 font-semibold text-slate-200 text-lg group-hover:text-blue-400 transition-colors">
+                        ${item.title}
+                    </td>
+                    <td class="p-4 border-b border-slate-700/50 text-sm text-slate-400 leading-relaxed">
+                        ${item.activity}
+                    </td>
+                    <td class="p-4 border-b border-slate-700/50 text-center">
+                        <div class="flex items-center justify-center">
+                            <input type="number" min="1" max="999" class="duration-input w-24 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white font-bold text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all tabular-nums shadow-inner" data-index="${index}" value="${item.durationMinutes}">
+                        </div>
+                    </td>
+                `;
+                agendaTableBody.appendChild(tr);
+                
+                // Update waktu mulai untuk baris berikutnya
+                currentCalculatedTime = endTime;
+            });
+
+            // Pasang event listener 'change' ke input durasi (bukan 'input' agar fokus tidak hilang saat mengetik)
+            document.querySelectorAll('.duration-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    let newValue = parseInt(e.target.value);
+                    if (isNaN(newValue) || newValue < 1) {
+                        newValue = 1;
+                        e.target.value = 1;
+                    }
+                    agendaData[idx].durationMinutes = newValue;
+                    renderTable(); // Re-render untuk memperbarui kalkulasi kolom Waktu
+                    updateTotalDuration();
+                });
+            });
+        }
+
+        // Hitung dan Tampilkan Total Waktu
+        function updateTotalDuration() {
+            const total = agendaData.reduce((sum, item) => sum + item.durationMinutes, 0);
+            const hours = Math.floor(total / 60);
+            const mins = total % 60;
+            const textFormat = hours > 0 ? `${hours} Jam ${mins} Menit` : `${mins} Menit`;
+            document.getElementById('total-duration-display').textContent = `Total Waktu: ${total} Menit (${textFormat})`;
+        }
+
+        // Listener untuk perubahan Waktu Mulai
+        startTimeInput.addEventListener('change', () => {
+            renderTable();
+        });
+
+
+        // ==========================================
+        // FITUR TIMER LAYAR PENUH
+        // ==========================================
+
+        function formatTimerDisplay(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            
+            if (h > 0) {
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function startPresentation() {
+            // Scroll to top to ensure clean transition
+            window.scrollTo(0, 0);
+            scheduleView.classList.add('opacity-0', 'scale-[0.98]');
+            
+            setTimeout(() => {
+                scheduleView.classList.add('hidden');
+                scheduleView.classList.remove('opacity-0', 'scale-[0.98]');
+                
+                timerView.classList.remove('hidden');
+                
+                currentIndex = 0;
+                loadAgendaItem(currentIndex);
+            }, 500);
+        }
+
+        function loadAgendaItem(index) {
+            if (index >= agendaData.length) {
+                showFinishedScreen();
+                return;
+            }
+
+            const currentItem = agendaData[index];
+            totalSecondsCurrentItem = currentItem.durationMinutes * 60;
+            secondsLeft = totalSecondsCurrentItem;
+            isPaused = false;
+            
+            updatePauseButtonUI();
+            updateTimerUI();
+            
+            // Set Titles
+            currentTitleEl.textContent = currentItem.title;
+            if (index + 1 < agendaData.length) {
+                nextTitleContainerEl.style.display = 'inline-block';
+                nextTitleEl.textContent = agendaData[index + 1].title;
+            } else {
+                nextTitleContainerEl.style.display = 'inline-block';
+                nextTitleEl.textContent = "Selesai (Akhir Acara)";
+            }
+
+            // Start Interval
+            clearInterval(timerInterval);
+            timerInterval = setInterval(tick, 1000);
+        }
+
+        function tick() {
+            if (!isPaused) {
+                if (secondsLeft > 0) {
+                    secondsLeft--;
+                    updateTimerUI();
+                } else {
+                    clearInterval(timerInterval);
+                    nextAgenda();
+                }
+            }
+        }
+
+        function updateTimerUI() {
+            countdownDisplayEl.textContent = formatTimerDisplay(secondsLeft);
+            
+            const elapsed = totalSecondsCurrentItem - secondsLeft;
+            const percentage = (elapsed / totalSecondsCurrentItem) * 100;
+            progressBarEl.style.width = `${percentage}%`;
+
+            // Efek peringatan waktu (merah jika sisa < 2 menit)
+            if (secondsLeft <= 120 && secondsLeft > 0) {
+                countdownDisplayEl.classList.remove('text-white');
+                countdownDisplayEl.classList.add('text-red-400');
+            } else {
+                countdownDisplayEl.classList.remove('text-red-400');
+                countdownDisplayEl.classList.add('text-white');
+            }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            updatePauseButtonUI();
+        }
+
+        function updatePauseButtonUI() {
+            if (isPaused) {
+                iconPause.innerHTML = svgPlay;
+                textPause.textContent = "Resume";
+                btnPause.classList.add('bg-blue-600', 'text-white');
+                btnPause.classList.remove('bg-white', 'text-slate-900');
+                countdownDisplayEl.classList.add('opacity-40'); 
+            } else {
+                iconPause.innerHTML = svgPause;
+                textPause.textContent = "Pause";
+                btnPause.classList.remove('bg-blue-600', 'text-white');
+                btnPause.classList.add('bg-white', 'text-slate-900');
+                countdownDisplayEl.classList.remove('opacity-40');
+            }
+        }
+
+        function nextAgenda() {
+            clearInterval(timerInterval);
+            currentIndex++;
+            loadAgendaItem(currentIndex);
+        }
+
+        function stopPresentation() {
+            clearInterval(timerInterval);
+            timerView.classList.add('hidden');
+            finishedOverlay.classList.add('hidden');
+            scheduleView.classList.remove('hidden');
+        }
+
+        function showFinishedScreen() {
+            clearInterval(timerInterval);
+            timerView.classList.add('hidden');
+            finishedOverlay.classList.remove('hidden');
+        }
+
+        // Event Listeners Buttons
+        btnStart.addEventListener('click', startPresentation);
+        btnPause.addEventListener('click', togglePause);
+        btnNext.addEventListener('click', nextAgenda);
+        btnStop.addEventListener('click', stopPresentation);
+        btnBackHome.addEventListener('click', stopPresentation);
+
+        // Inisialisasi awal
+        renderTable();
+        updateTotalDuration();
+
+    </script>
+</body>
+</html>
