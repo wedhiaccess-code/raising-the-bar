@@ -1,435 +1,503 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jadwal & Timer Presentasi</title>
+    <title>XLSMART - Event & Presentation Timer</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        xldark: '#060B19',
+                        xlnavy: '#0F172A',
+                        xlcard: '#182649',
+                        xlblue: '#0052FF',
+                        xlcyan: '#00D2FF',
+                        xlmagenta: '#E6007E',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a; /* Slate 900 */
-            color: #f8fafc;
+        .timer-nums { font-variant-numeric: tabular-nums; }
+        .gradient-brand {
+            background: linear-gradient(135deg, #0052FF 0%, #00D2FF 50%, #E6007E 100%);
         }
-        .tabular-nums {
-            font-variant-numeric: tabular-nums;
+        .gradient-text {
+            background: linear-gradient(135deg, #00D2FF 0%, #FFFFFF 80%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .progress-bar-transition {
-            transition: width 1s linear;
+        /* Custom Scrollbar for responsive table */
+        ::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
         }
-        /* Styling untuk input time agar ikon jam di browser terlihat baik di dark mode */
-        input[type="time"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            cursor: pointer;
+        ::-webkit-scrollbar-track {
+            background: #060B19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #182649;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0052FF;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center overflow-x-hidden selection:bg-blue-500 selection:text-white">
+<body class="bg-xldark text-slate-100 font-sans min-h-screen flex flex-col justify-between selection:bg-xlmagenta selection:text-white">
 
-    <!-- VIEW 1: DASHBOARD / TABEL JADWAL -->
-    <div id="schedule-view" class="w-full max-w-6xl p-6 transition-all duration-500 ease-in-out opacity-100 py-10">
-        
-        <!-- Header & Widgets -->
-        <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-6">
-            <div>
-                <h1 class="text-3xl md:text-5xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500">
-                    Raising The Bar Timer
-                </h1>
-                <p id="total-duration-display" class="text-slate-400 text-lg font-medium">Total Waktu: Menghitung...</p>
+    <!-- HEADER BRANDING -->
+    <header class="border-b border-slate-800/80 bg-xlnavy/80 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="h-8 w-2 rounded-full gradient-brand shadow-[0_0_12px_rgba(0,210,255,0.4)]"></div>
+                <div>
+                    <span class="text-xl sm:text-2xl font-black tracking-wider text-white">XLSMART</span>
+                    <span class="hidden sm:inline-block text-[10px] ml-2 px-2 py-0.5 rounded bg-blue-950/80 text-xlcyan border border-blue-800/60 font-mono uppercase tracking-widest">Presenter Console</span>
+                </div>
             </div>
+            <div class="flex items-center gap-4">
+                <div id="live-clock" class="font-mono text-xs sm:text-sm text-slate-400 bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-800">00:00:00 WIB</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD (JADWAL & KONTROL) -->
+    <main id="schedule-view" class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex-1 transition-all duration-300">
+        
+        <!-- RINGKASAN & KONTROL UTAMA -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
             
-            <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                <!-- Real-time Clock -->
-                <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex flex-col justify-center min-w-[160px] shadow-lg backdrop-blur-sm">
-                    <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Waktu Saat Ini</span>
-                    <span id="real-time-clock" class="text-2xl font-bold text-white tabular-nums tracking-tight">00:00:00</span>
+            <!-- Card Jam Mulai -->
+            <div class="bg-xlcard/70 border border-slate-800/80 p-4 sm:p-5 rounded-2xl shadow-xl backdrop-blur-sm flex flex-col justify-between">
+                <label for="start-time" class="text-xs font-bold text-xlcyan uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Jam Mulai Acara
+                </label>
+                <input type="time" id="start-time" value="08:30" onchange="onStartTimeChange()" class="bg-xldark border border-slate-700/80 text-white text-xl sm:text-2xl font-mono rounded-xl px-4 py-2 w-full focus:border-xlcyan focus:ring-1 focus:ring-xlcyan focus:outline-none transition">
+            </div>
+
+            <!-- Card Total Statistik -->
+            <div class="bg-xlcard/70 border border-slate-800/80 p-4 sm:p-5 rounded-2xl shadow-xl backdrop-blur-sm flex flex-col justify-between">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Ringkasan Sesi</span>
+                <div class="flex justify-between items-baseline">
+                    <span class="text-2xl sm:text-3xl font-black text-white" id="summary-count">8 Agenda</span>
+                    <span class="text-lg sm:text-xl font-mono text-xlcyan font-semibold" id="summary-duration">180 Menit</span>
                 </div>
-                
-                <!-- Start Time Input -->
-                <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex flex-col justify-center min-w-[180px] shadow-lg backdrop-blur-sm">
-                    <label for="start-time-input" class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Waktu Start Presentasi</label>
-                    <input type="time" id="start-time-input" value="08:30" class="bg-slate-900 text-white text-xl font-bold border border-slate-600 rounded px-2 py-1 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all tabular-nums">
-                </div>
+            </div>
+
+            <!-- Card Tombol Start -->
+            <div class="sm:col-span-2 lg:col-span-1 bg-xlcard/70 border border-slate-800/80 p-4 sm:p-5 rounded-2xl shadow-xl flex items-center">
+                <button onclick="startPresentation()" class="w-full h-full min-h-[56px] gradient-brand hover:brightness-110 active:scale-[0.99] text-white font-bold text-base sm:text-lg py-3 px-6 rounded-xl shadow-[0_0_25px_rgba(0,82,255,0.4)] transition duration-200 flex items-center justify-center gap-3">
+                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    Mulai Sesi Presentasi
+                </button>
             </div>
         </div>
 
-        <!-- Tabel Agenda -->
-        <div class="bg-slate-800/50 rounded-2xl shadow-2xl overflow-hidden border border-slate-700 mb-8 backdrop-blur-md">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse min-w-[800px]">
+        <!-- TABEL JADWAL AGENDA -->
+        <div class="bg-xlcard/60 border border-slate-800/80 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md">
+            
+            <div class="p-4 sm:p-5 border-b border-slate-800/80 flex flex-wrap justify-between items-center gap-3 bg-slate-900/50">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-xlmagenta animate-pulse"></span>
+                    <h2 class="text-base sm:text-lg font-bold text-white">Susunan Agenda & Waktu</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="resetToDefault()" class="text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-2 rounded-lg transition">
+                        Reset Default
+                    </button>
+                    <button onclick="addAgenda()" class="text-xs font-bold bg-xlblue/20 hover:bg-xlblue/30 text-xlcyan border border-xlblue/50 px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Tambah Sesi
+                    </button>
+                </div>
+            </div>
+
+            <!-- Responsive Table Container -->
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left min-w-[640px]">
                     <thead>
-                        <tr class="bg-slate-900 text-slate-300 uppercase text-xs font-bold tracking-wider">
-                            <th class="p-4 border-b border-slate-700 w-32 text-center">Waktu</th>
-                            <th class="p-4 border-b border-slate-700 w-1/4">Agenda Sesi</th>
-                            <th class="p-4 border-b border-slate-700 w-2/5">Aktivitas</th>
-                            <th class="p-4 border-b border-slate-700 w-32 text-center">Durasi (Menit)</th>
+                        <tr class="bg-xldark/80 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-800">
+                            <th class="py-3.5 px-4 text-center w-20">Urutan</th>
+                            <th class="py-3.5 px-6">Nama Agenda</th>
+                            <th class="py-3.5 px-4 w-36">Durasi (Mnt)</th>
+                            <th class="py-3.5 px-6 text-center w-48">Estimasi Jam</th>
+                            <th class="py-3.5 px-4 text-center w-16">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="agenda-table-body" class="divide-y divide-slate-700/50">
-                        <!-- Baris tabel di-generate oleh JS -->
+                    <tbody id="schedule-body" class="divide-y divide-slate-800/60 text-sm">
+                        <!-- Data di-render melalui JavaScript -->
                     </tbody>
                 </table>
             </div>
         </div>
+    </main>
 
-        <div class="flex justify-center mt-10">
-            <button id="btn-start-presentation" class="group relative px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full text-xl shadow-[0_0_30px_-5px_rgba(37,99,235,0.6)] transition-all hover:scale-105 hover:shadow-[0_0_50px_-10px_rgba(37,99,235,0.8)] flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Mulai Presentasi
-            </button>
-        </div>
-    </div>
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-800/60 py-4 text-center text-xs text-slate-500">
+        XLSMART Presentation Timer &copy; 2026. Ready for GitHub Pages.
+    </footer>
 
-    <!-- VIEW 2: TIMER LAYAR PENUH -->
-    <div id="timer-view" class="fixed inset-0 bg-slate-900 flex flex-col justify-between hidden z-50">
+    <!-- TIMER VIEW FULLSCREEN OVERLAY -->
+    <div id="timer-view" class="hidden fixed inset-0 bg-xldark text-white flex flex-col justify-between p-4 sm:p-8 z-50 transition-all duration-300">
         
-        <!-- Progress Bar -->
-        <div class="w-full h-2 bg-slate-800">
-            <div id="item-progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 progress-bar-transition w-0"></div>
+        <!-- Header Overlay -->
+        <div class="flex justify-between items-center max-w-7xl mx-auto w-full border-b border-slate-800/80 pb-3 sm:pb-4">
+            <div class="flex items-center gap-3">
+                <div class="h-6 w-2 rounded-full gradient-brand"></div>
+                <span class="text-lg sm:text-xl font-extrabold tracking-wider">XLSMART LIVE</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <div id="presentation-status" class="text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase tracking-widest animate-pulse">
+                    • On Air
+                </div>
+                <button onclick="stopPresentation()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-lg transition" title="Keluar Mode Fullscreen">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
         </div>
 
-        <!-- Bagian Atas: Judul Sesi -->
-        <div class="text-center pt-16 px-6 flex-shrink-0">
-            <p class="text-blue-400 font-semibold tracking-widest uppercase text-sm md:text-base mb-3 animate-pulse">Sesi Saat Ini</p>
-            <h2 id="current-title" class="text-4xl md:text-6xl font-bold text-white drop-shadow-md line-clamp-2 max-w-5xl mx-auto">
-                Judul Agenda
-            </h2>
-        </div>
-
-        <!-- Bagian Tengah: Timer -->
-        <div class="flex-grow flex items-center justify-center p-4">
-            <div id="countdown-display" class="text-[7rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] font-bold leading-none tabular-nums tracking-tighter text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)] transition-colors duration-300">
+        <!-- Main Display Center -->
+        <div class="max-w-5xl w-full mx-auto text-center my-auto py-2 sm:py-6 flex flex-col items-center justify-center">
+            
+            <p id="current-agenda-time" class="text-lg sm:text-2xl font-mono text-xlcyan mb-1 sm:mb-2 font-semibold">08:30 - 08:40</p>
+            <h1 id="current-agenda-title" class="text-2xl sm:text-5xl lg:text-6xl font-black text-white mb-4 sm:mb-8 gradient-text px-4 leading-tight">Nama Agenda</h1>
+            
+            <!-- Big Timer -->
+            <div id="countdown-display" class="text-[20vw] sm:text-[12rem] lg:text-[15rem] font-black leading-none timer-nums tracking-tight mb-4 sm:mb-8 drop-shadow-[0_10px_40px_rgba(0,82,255,0.25)] select-none">
                 00:00
             </div>
-        </div>
 
-        <!-- Bagian Bawah: Next & Controls -->
-        <div class="pb-12 px-6 flex flex-col items-center flex-shrink-0 gap-8">
-            
-            <!-- Info Agenda Selanjutnya -->
-            <div class="text-center">
-                <p id="next-title-container" class="text-slate-400 text-xl md:text-2xl bg-slate-800/50 px-6 py-2 rounded-full border border-slate-700/50">
-                    <span class="opacity-70">Next:</span> 
-                    <span id="next-title" class="font-semibold text-slate-200 ml-2">Judul Berikutnya</span>
-                </p>
+            <!-- Progress Bar -->
+            <div class="w-full max-w-4xl bg-slate-900 border border-slate-800 h-3.5 sm:h-5 rounded-full mb-6 sm:mb-10 overflow-hidden p-0.5">
+                <div id="progress-bar" class="gradient-brand h-full rounded-full transition-all duration-1000 w-full"></div>
             </div>
 
-            <!-- Tombol Kontrol -->
-            <div class="flex items-center gap-4 md:gap-6">
-                <!-- Akhiri -->
-                <button id="btn-stop" class="px-6 py-4 rounded-full bg-slate-800 text-red-400 hover:bg-red-500/20 border border-slate-700 hover:border-red-500/50 font-semibold transition-all flex items-center gap-2" title="Hentikan Timer">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                    </svg>
-                    Akhiri
+            <!-- Control Action Buttons -->
+            <div class="flex flex-wrap justify-center items-center gap-2 sm:gap-4">
+                <button onclick="adjustTime(-60)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 px-4 rounded-xl border border-slate-700 transition active:scale-95 text-xs sm:text-sm">-1 Mnt</button>
+                <button onclick="adjustTime(60)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 px-4 rounded-xl border border-slate-700 transition active:scale-95 text-xs sm:text-sm">+1 Mnt</button>
+                
+                <button onclick="togglePause()" id="pause-btn" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2.5 sm:py-3.5 px-6 sm:px-8 rounded-xl transition shadow-lg active:scale-95 text-sm sm:text-base flex items-center gap-2">
+                    ⏸ Jeda
                 </button>
-
-                <!-- Pause / Resume -->
-                <button id="btn-pause" class="w-48 py-4 rounded-full bg-white text-slate-900 hover:bg-slate-200 font-bold text-xl flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                    <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span id="text-pause">Pause</span>
-                </button>
-
-                <!-- Next -->
-                <button id="btn-next" class="px-6 py-4 rounded-full bg-slate-800 text-white hover:bg-slate-700 border border-slate-700 font-semibold transition-all flex items-center gap-2" title="Lompat ke Sesi Berikutnya">
-                    Next
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                    </svg>
+                
+                <button onclick="nextAgenda()" id="next-btn" class="bg-xlblue hover:bg-blue-600 text-white font-bold py-2.5 sm:py-3.5 px-6 sm:px-8 rounded-xl transition shadow-lg active:scale-95 text-sm sm:text-base flex items-center gap-2">
+                    ⏭ Sesi Berikutnya
                 </button>
             </div>
         </div>
+
+        <!-- Footer Preview Agenda -->
+        <div class="max-w-6xl mx-auto w-full bg-xlcard/60 border border-slate-800/80 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-4 backdrop-blur">
+            <span class="text-[10px] sm:text-xs uppercase font-bold text-slate-400 tracking-wider">Berikutnya</span>
+            <span id="next-agenda-title" class="text-sm sm:text-base font-semibold text-slate-200 truncate max-w-md text-center sm:text-right">-</span>
+        </div>
     </div>
 
-    <!-- Peringatan Selesai -->
-    <div id="finished-overlay" class="fixed inset-0 bg-slate-900/95 flex flex-col items-center justify-center z-[60] hidden backdrop-blur-xl">
-        <h1 class="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 mb-6">Presentasi Selesai!</h1>
-        <p class="text-xl text-slate-300 mb-10 text-center max-w-lg">Seluruh agenda telah diselesaikan.</p>
-        <button id="btn-back-home" class="px-8 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-full text-white font-bold transition-colors">
-            Kembali ke Dashboard
-        </button>
-    </div>
-
+    <!-- JAVASCRIPT APP LOGIC -->
     <script>
-        // Data Default Berdasarkan Permintaan
-        const agendaData = [
-            { id: 1, title: "Warm Up", durationMinutes: 15, activity: "Sambutan, pengecekan audio/visual, ice breaking, dan penyampaian garis besar agenda presentasi hari ini." },
-            { id: 2, title: "XLSMART as a Hyper-Performing Company", durationMinutes: 45, activity: "Pembahasan materi inti pertama. Sisihkan 10 menit terakhir untuk sesi Q&A." },
-            { id: 3, title: "Coffee Break / Jeda", durationMinutes: 15, activity: "Istirahat sejenak agar audiens dapat meregangkan otot, ketoilet, dan mengembalikan fokus." },
-            { id: 4, title: "Creating a Learning Environment for Innovation", durationMinutes: 40, activity: "Pemaparan strategi dan contoh budaya inovasi. Fokuskan pada diskusi interaktif." },
-            { id: 5, title: "Building Greater Empowerment & Accountability", durationMinutes: 35, activity: "Pemaparan materi inti terakhir. Sertakan ruang untuk audiens bertanya." },
-            { id: 6, title: "Quiz", durationMinutes: 15, activity: "Pelaksanaan kuis interaktif untuk menguji pemahaman audiens." },
-            { id: 7, title: "Reflections and Closing", durationMinutes: 15, activity: "Meminta peserta membagikan insight, merangkum kesimpulan akhir, dan penutupan acara." }
+        // Data Default Sesuai Kebutuhan XLSMART
+        const DEFAULT_AGENDAS = [
+            { title: "MC Open Event", duration: 10 },
+            { title: "SVP FRAME Speech", duration: 20 },
+            { title: "Grouping", duration: 10 },
+            { title: "Group Discussion", duration: 40 },
+            { title: "Presentation", duration: 50 },
+            { title: "QA", duration: 20 },
+            { title: "Investation Time", duration: 20 },
+            { title: "Investation Score", duration: 10 }
         ];
 
-        // State Variables
+        let agendas = [];
+
+        // Load & Save State LocalStorage (Persistensi di GitHub Pages)
+        function loadState() {
+            const savedAgendas = localStorage.getItem('xlsmart_agendas');
+            const savedStartTime = localStorage.getItem('xlsmart_start_time');
+            
+            if (savedAgendas) {
+                try { agendas = JSON.parse(savedAgendas); } 
+                catch(e) { agendas = [...DEFAULT_AGENDAS]; }
+            } else {
+                agendas = JSON.parse(JSON.stringify(DEFAULT_AGENDAS));
+            }
+
+            if (savedStartTime) {
+                document.getElementById('start-time').value = savedStartTime;
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('xlsmart_agendas', JSON.stringify(agendas));
+            localStorage.setItem('xlsmart_start_time', document.getElementById('start-time').value);
+        }
+
+        // Live Clock
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toLocaleTimeString('id-ID') + " WIB";
+        }, 1000);
+
+        // Render Tabel
+        function renderTable() {
+            const tbody = document.getElementById('schedule-body');
+            tbody.innerHTML = '';
+
+            let startTimeVal = document.getElementById('start-time').value || "08:30";
+            let [hours, minutes] = startTimeVal.split(':').map(Number);
+            let currentTotalMin = hours * 60 + minutes;
+            let sumDuration = 0;
+
+            agendas.forEach((item, index) => {
+                let startH = String(Math.floor(currentTotalMin / 60) % 24).padStart(2, '0');
+                let startM = String(currentTotalMin % 60).padStart(2, '0');
+                
+                currentTotalMin += Number(item.duration);
+                sumDuration += Number(item.duration);
+
+                let endH = String(Math.floor(currentTotalMin / 60) % 24).padStart(2, '0');
+                let endM = String(currentTotalMin % 60).padStart(2, '0');
+
+                item.startTimeStr = `${startH}:${startM}`;
+                item.endTimeStr = `${endH}:${endM}`;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition border-b border-slate-800/40";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="moveUp(${index})" ${index === 0 ? 'disabled class="opacity-20 cursor-not-allowed"' : 'class="hover:text-xlcyan p-1 text-slate-400 hover:bg-slate-800 rounded"'}>▲</button>
+                            <button onclick="moveDown(${index})" ${index === agendas.length - 1 ? 'disabled class="opacity-20 cursor-not-allowed"' : 'class="hover:text-xlcyan p-1 text-slate-400 hover:bg-slate-800 rounded"'}>▼</button>
+                        </div>
+                    </td>
+                    <td class="py-3 px-6">
+                        <input type="text" value="${escapeHtml(item.title)}" onchange="updateAgendaTitle(${index}, this.value)" class="w-full bg-transparent border-b border-transparent focus:border-xlcyan focus:bg-xldark px-2 py-1 font-medium text-white rounded outline-none transition">
+                    </td>
+                    <td class="py-3 px-4">
+                        <input type="number" min="1" value="${item.duration}" onchange="updateAgendaDuration(${index}, this.value)" class="w-20 bg-xldark border border-slate-700/80 rounded-lg px-2 py-1 font-mono font-semibold text-xlcyan text-center focus:border-xlcyan outline-none">
+                    </td>
+                    <td class="py-3 px-6 text-center font-mono text-slate-400">
+                        ${item.startTimeStr} - ${item.endTimeStr}
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="removeAgenda(${index})" class="text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 p-1.5 rounded-lg transition" title="Hapus">✕</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('summary-count').innerText = `${agendas.length} Agenda`;
+            document.getElementById('summary-duration').innerText = `${sumDuration} Menit`;
+            saveState();
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/"/g, '&quot;');
+        }
+
+        function onStartTimeChange() {
+            renderTable();
+        }
+
+        function moveUp(index) {
+            if (index > 0) {
+                const temp = agendas[index];
+                agendas[index] = agendas[index - 1];
+                agendas[index - 1] = temp;
+                renderTable();
+            }
+        }
+
+        function moveDown(index) {
+            if (index < agendas.length - 1) {
+                const temp = agendas[index];
+                agendas[index] = agendas[index + 1];
+                agendas[index + 1] = temp;
+                renderTable();
+            }
+        }
+
+        function updateAgendaTitle(index, val) {
+            agendas[index].title = val;
+            saveState();
+        }
+
+        function updateAgendaDuration(index, val) {
+            agendas[index].duration = Math.max(1, parseInt(val) || 1);
+            renderTable();
+        }
+
+        function addAgenda() {
+            agendas.push({ title: "Sesi Baru", duration: 15 });
+            renderTable();
+        }
+
+        function removeAgenda(index) {
+            if (agendas.length <= 1) {
+                alert("Minimal harus terdapat 1 agenda!");
+                return;
+            }
+            agendas.splice(index, 1);
+            renderTable();
+        }
+
+        function resetToDefault() {
+            if (confirm("Kembalikan susunan agenda ke default awal?")) {
+                agendas = JSON.parse(JSON.stringify(DEFAULT_AGENDAS));
+                document.getElementById('start-time').value = "08:30";
+                renderTable();
+            }
+        }
+
+        // TIMER LOGIC
         let currentIndex = 0;
-        let totalSecondsCurrentItem = 0;
-        let secondsLeft = 0;
+        let timeLeft = 0;
+        let totalTimeForCurrent = 0;
         let timerInterval = null;
         let isPaused = false;
 
-        // DOM Elements
-        const scheduleView = document.getElementById('schedule-view');
-        const timerView = document.getElementById('timer-view');
-        const finishedOverlay = document.getElementById('finished-overlay');
-        const agendaTableBody = document.getElementById('agenda-table-body');
-        const startTimeInput = document.getElementById('start-time-input');
-        
-        // Timer DOM
-        const currentTitleEl = document.getElementById('current-title');
-        const countdownDisplayEl = document.getElementById('countdown-display');
-        const nextTitleEl = document.getElementById('next-title');
-        const nextTitleContainerEl = document.getElementById('next-title-container');
-        const progressBarEl = document.getElementById('item-progress-bar');
-        
-        // Buttons
-        const btnStart = document.getElementById('btn-start-presentation');
-        const btnPause = document.getElementById('btn-pause');
-        const btnNext = document.getElementById('btn-next');
-        const btnStop = document.getElementById('btn-stop');
-        const btnBackHome = document.getElementById('btn-back-home');
-        
-        const iconPause = document.getElementById('icon-pause');
-        const textPause = document.getElementById('text-pause');
-
-        // SVG Icons untuk Pause/Resume
-        const svgPause = `<path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />`;
-        const svgPlay = `<path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />`;
-
-        // ==========================================
-        // FITUR DASHBOARD (Jam & Tabel)
-        // ==========================================
-
-        // Update Jam Real-Time
-        function updateRealTimeClock() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('real-time-clock').textContent = timeString.replace(/\./g, ':');
-        }
-        setInterval(updateRealTimeClock, 1000);
-        updateRealTimeClock();
-
-        // Helper untuk Kalkulasi Waktu (HH:MM + Menit)
-        function addMinutesToTime(timeStr, minutesToAdd) {
-            if (!timeStr) return "00:00";
-            let [hours, minutes] = timeStr.split(':').map(Number);
-            let date = new Date();
-            date.setHours(hours, minutes, 0, 0);
-            date.setMinutes(date.getMinutes() + minutesToAdd);
-            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-        }
-
-        // Render Ulang Tabel Jadwal
-        function renderTable() {
-            agendaTableBody.innerHTML = '';
-            let currentCalculatedTime = startTimeInput.value;
-
-            agendaData.forEach((item, index) => {
-                const endTime = addMinutesToTime(currentCalculatedTime, item.durationMinutes);
-                
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-700/40 transition-colors group';
-                tr.innerHTML = `
-                    <td class="p-4 border-b border-slate-700/50 text-center font-mono text-sm text-slate-300 whitespace-nowrap bg-slate-800/20">
-                        ${currentCalculatedTime} - ${endTime}
-                    </td>
-                    <td class="p-4 border-b border-slate-700/50 font-semibold text-slate-200 text-lg group-hover:text-blue-400 transition-colors">
-                        ${item.title}
-                    </td>
-                    <td class="p-4 border-b border-slate-700/50 text-sm text-slate-400 leading-relaxed">
-                        ${item.activity}
-                    </td>
-                    <td class="p-4 border-b border-slate-700/50 text-center">
-                        <div class="flex items-center justify-center">
-                            <input type="number" min="1" max="999" class="duration-input w-24 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white font-bold text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all tabular-nums shadow-inner" data-index="${index}" value="${item.durationMinutes}">
-                        </div>
-                    </td>
-                `;
-                agendaTableBody.appendChild(tr);
-                
-                // Update waktu mulai untuk baris berikutnya
-                currentCalculatedTime = endTime;
-            });
-
-            // Pasang event listener 'change' ke input durasi (bukan 'input' agar fokus tidak hilang saat mengetik)
-            document.querySelectorAll('.duration-input').forEach(input => {
-                input.addEventListener('change', (e) => {
-                    const idx = parseInt(e.target.getAttribute('data-index'));
-                    let newValue = parseInt(e.target.value);
-                    if (isNaN(newValue) || newValue < 1) {
-                        newValue = 1;
-                        e.target.value = 1;
-                    }
-                    agendaData[idx].durationMinutes = newValue;
-                    renderTable(); // Re-render untuk memperbarui kalkulasi kolom Waktu
-                    updateTotalDuration();
-                });
-            });
-        }
-
-        // Hitung dan Tampilkan Total Waktu
-        function updateTotalDuration() {
-            const total = agendaData.reduce((sum, item) => sum + item.durationMinutes, 0);
-            const hours = Math.floor(total / 60);
-            const mins = total % 60;
-            const textFormat = hours > 0 ? `${hours} Jam ${mins} Menit` : `${mins} Menit`;
-            document.getElementById('total-duration-display').textContent = `Total Waktu: ${total} Menit (${textFormat})`;
-        }
-
-        // Listener untuk perubahan Waktu Mulai
-        startTimeInput.addEventListener('change', () => {
-            renderTable();
-        });
-
-
-        // ==========================================
-        // FITUR TIMER LAYAR PENUH
-        // ==========================================
-
-        function formatTimerDisplay(totalSeconds) {
-            const h = Math.floor(totalSeconds / 3600);
-            const m = Math.floor((totalSeconds % 3600) / 60);
-            const s = totalSeconds % 60;
-            
-            if (h > 0) {
-                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-            }
-            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        // Sound Alarm menggunakan Web Audio API
+        function playBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 880; // A5 pitch
+                gain.gain.value = 0.1;
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                setTimeout(() => osc.stop(), 500);
+            } catch(e) {}
         }
 
         function startPresentation() {
-            // Scroll to top to ensure clean transition
-            window.scrollTo(0, 0);
-            scheduleView.classList.add('opacity-0', 'scale-[0.98]');
+            document.getElementById('schedule-view').classList.add('hidden');
+            document.getElementById('timer-view').classList.remove('hidden');
             
-            setTimeout(() => {
-                scheduleView.classList.add('hidden');
-                scheduleView.classList.remove('opacity-0', 'scale-[0.98]');
-                
-                timerView.classList.remove('hidden');
-                
-                currentIndex = 0;
-                loadAgendaItem(currentIndex);
-            }, 500);
+            // Coba panggil Browser Fullscreen API jika didukung
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+
+            currentIndex = 0;
+            loadAgenda(currentIndex);
         }
 
-        function loadAgendaItem(index) {
-            if (index >= agendaData.length) {
-                showFinishedScreen();
+        function loadAgenda(index) {
+            if (index >= agendas.length) {
+                stopPresentation();
+                alert("Seluruh sesi acara telah selesai!");
                 return;
             }
 
-            const currentItem = agendaData[index];
-            totalSecondsCurrentItem = currentItem.durationMinutes * 60;
-            secondsLeft = totalSecondsCurrentItem;
-            isPaused = false;
+            const agenda = agendas[index];
+            document.getElementById('current-agenda-title').innerText = agenda.title;
+            document.getElementById('current-agenda-time').innerText = `${agenda.startTimeStr} - ${agenda.endTimeStr} (${agenda.duration} Menit)`;
             
-            updatePauseButtonUI();
-            updateTimerUI();
-            
-            // Set Titles
-            currentTitleEl.textContent = currentItem.title;
-            if (index + 1 < agendaData.length) {
-                nextTitleContainerEl.style.display = 'inline-block';
-                nextTitleEl.textContent = agendaData[index + 1].title;
+            if (index + 1 < agendas.length) {
+                document.getElementById('next-agenda-title').innerText = agendas[index + 1].title;
             } else {
-                nextTitleContainerEl.style.display = 'inline-block';
-                nextTitleEl.textContent = "Selesai (Akhir Acara)";
+                document.getElementById('next-agenda-title').innerText = "Selesai (Akhir Acara)";
+                document.getElementById('next-btn').innerText = "Selesaikan Presentasi";
             }
 
-            // Start Interval
+            totalTimeForCurrent = agenda.duration * 60;
+            timeLeft = totalTimeForCurrent;
+            isPaused = false;
+            document.getElementById('pause-btn').innerText = "⏸ Jeda";
+            
+            updateDisplay();
             clearInterval(timerInterval);
             timerInterval = setInterval(tick, 1000);
         }
 
         function tick() {
             if (!isPaused) {
-                if (secondsLeft > 0) {
-                    secondsLeft--;
-                    updateTimerUI();
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateDisplay();
                 } else {
                     clearInterval(timerInterval);
-                    nextAgenda();
+                    playBeep();
+                    document.getElementById('countdown-display').className = "text-[20vw] sm:text-[12rem] lg:text-[15rem] font-black leading-none timer-nums tracking-tight mb-4 sm:mb-8 text-rose-500 animate-pulse drop-shadow-[0_10px_40px_rgba(244,63,94,0.4)] select-none";
                 }
             }
         }
 
-        function updateTimerUI() {
-            countdownDisplayEl.textContent = formatTimerDisplay(secondsLeft);
-            
-            const elapsed = totalSecondsCurrentItem - secondsLeft;
-            const percentage = (elapsed / totalSecondsCurrentItem) * 100;
-            progressBarEl.style.width = `${percentage}%`;
+        function adjustTime(seconds) {
+            timeLeft = Math.max(0, timeLeft + seconds);
+            updateDisplay();
+        }
 
-            // Efek peringatan waktu (merah jika sisa < 2 menit)
-            if (secondsLeft <= 120 && secondsLeft > 0) {
-                countdownDisplayEl.classList.remove('text-white');
-                countdownDisplayEl.classList.add('text-red-400');
+        function updateDisplay() {
+            const display = document.getElementById('countdown-display');
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            
+            display.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            const progress = document.getElementById('progress-bar');
+            const percentage = totalTimeForCurrent > 0 ? (timeLeft / totalTimeForCurrent) * 100 : 0;
+            progress.style.width = `${percentage}%`;
+
+            if (timeLeft <= 60 && timeLeft > 0) {
+                display.className = "text-[20vw] sm:text-[12rem] lg:text-[15rem] font-black leading-none timer-nums tracking-tight mb-4 sm:mb-8 text-amber-400 drop-shadow-[0_10px_40px_rgba(251,191,36,0.3)] select-none";
+            } else if (timeLeft === 0) {
+                display.className = "text-[20vw] sm:text-[12rem] lg:text-[15rem] font-black leading-none timer-nums tracking-tight mb-4 sm:mb-8 text-rose-500 animate-pulse drop-shadow-[0_10px_40px_rgba(244,63,94,0.4)] select-none";
             } else {
-                countdownDisplayEl.classList.remove('text-red-400');
-                countdownDisplayEl.classList.add('text-white');
+                display.className = "text-[20vw] sm:text-[12rem] lg:text-[15rem] font-black leading-none timer-nums tracking-tight mb-4 sm:mb-8 text-white drop-shadow-[0_10px_40px_rgba(0,82,255,0.25)] select-none";
             }
         }
 
         function togglePause() {
             isPaused = !isPaused;
-            updatePauseButtonUI();
-        }
-
-        function updatePauseButtonUI() {
+            const pauseBtn = document.getElementById('pause-btn');
             if (isPaused) {
-                iconPause.innerHTML = svgPlay;
-                textPause.textContent = "Resume";
-                btnPause.classList.add('bg-blue-600', 'text-white');
-                btnPause.classList.remove('bg-white', 'text-slate-900');
-                countdownDisplayEl.classList.add('opacity-40'); 
+                pauseBtn.innerText = "▶ Lanjutkan";
+                pauseBtn.className = "bg-xlblue hover:bg-blue-600 text-white font-bold py-2.5 sm:py-3.5 px-6 sm:px-8 rounded-xl transition shadow-lg active:scale-95 text-sm sm:text-base flex items-center gap-2";
             } else {
-                iconPause.innerHTML = svgPause;
-                textPause.textContent = "Pause";
-                btnPause.classList.remove('bg-blue-600', 'text-white');
-                btnPause.classList.add('bg-white', 'text-slate-900');
-                countdownDisplayEl.classList.remove('opacity-40');
+                pauseBtn.innerText = "⏸ Jeda";
+                pauseBtn.className = "bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2.5 sm:py-3.5 px-6 sm:px-8 rounded-xl transition shadow-lg active:scale-95 text-sm sm:text-base flex items-center gap-2";
             }
         }
 
         function nextAgenda() {
             clearInterval(timerInterval);
             currentIndex++;
-            loadAgendaItem(currentIndex);
+            loadAgenda(currentIndex);
         }
 
         function stopPresentation() {
             clearInterval(timerInterval);
-            timerView.classList.add('hidden');
-            finishedOverlay.classList.add('hidden');
-            scheduleView.classList.remove('hidden');
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+            document.getElementById('timer-view').classList.add('hidden');
+            document.getElementById('schedule-view').classList.remove('hidden');
         }
 
-        function showFinishedScreen() {
-            clearInterval(timerInterval);
-            timerView.classList.add('hidden');
-            finishedOverlay.classList.remove('hidden');
-        }
-
-        // Event Listeners Buttons
-        btnStart.addEventListener('click', startPresentation);
-        btnPause.addEventListener('click', togglePause);
-        btnNext.addEventListener('click', nextAgenda);
-        btnStop.addEventListener('click', stopPresentation);
-        btnBackHome.addEventListener('click', stopPresentation);
-
-        // Inisialisasi awal
+        // Initial Load
+        loadState();
         renderTable();
-        updateTotalDuration();
-
     </script>
 </body>
 </html>
