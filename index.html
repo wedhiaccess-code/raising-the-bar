@@ -303,9 +303,10 @@
                     </td>
                     <td data-label="PIC" class="p-4 border-b border-slate-700/50 text-center">
                         <select class="pic-select w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all" data-index="${index}" aria-label="PIC untuk ${item.title}">
-                            <option value="" ${item.pic === "" ? "selected" : ""}>Pilih PIC</option>
+                            <option value="" ${item.pic === "" ? "selected" : ""}>PIC</option>
                             <option value="Edy" ${item.pic === "Edy" ? "selected" : ""}>Edy</option>
                             <option value="Yessy" ${item.pic === "Yessy" ? "selected" : ""}>Yessy</option>
+                            <option value="Rizky" ${item.pic === " " ? "selected" : ""}></option>
                         </select>
                     </td>
                 `;
