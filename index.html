@@ -112,6 +112,7 @@
                             <th class="p-4 border-b border-slate-700 w-1/4">Agenda Sesi</th>
                             <th class="p-4 border-b border-slate-700 w-2/5">Aktivitas</th>
                             <th class="p-4 border-b border-slate-700 w-32 text-center">Durasi (Menit)</th>
+                            <th class="p-4 border-b border-slate-700 w-32 text-center">PIC</th>
                         </tr>
                     </thead>
                     <tbody id="agenda-table-body" class="divide-y divide-slate-700/50">
@@ -208,13 +209,13 @@
     <script>
         // Data Default Berdasarkan Permintaan
         const agendaData = [
-            { id: 1, title: "Warm Up", durationMinutes: 15, activity: "Sambutan, pengecekan audio/visual, ice breaking, dan penyampaian garis besar agenda presentasi hari ini." },
-            { id: 2, title: "XLSMART as a Hyper-Performing Company", durationMinutes: 45, activity: "Pembahasan materi inti pertama. Sisihkan 10 menit terakhir untuk sesi Q&A." },
-            { id: 3, title: "Coffee Break / Jeda", durationMinutes: 15, activity: "Istirahat sejenak agar audiens dapat meregangkan otot, ketoilet, dan mengembalikan fokus." },
-            { id: 4, title: "Creating a Learning Environment for Innovation", durationMinutes: 40, activity: "Pemaparan strategi dan contoh budaya inovasi. Fokuskan pada diskusi interaktif." },
-            { id: 5, title: "Building Greater Empowerment & Accountability", durationMinutes: 35, activity: "Pemaparan materi inti terakhir. Sertakan ruang untuk audiens bertanya." },
-            { id: 6, title: "Quiz", durationMinutes: 15, activity: "Pelaksanaan kuis interaktif untuk menguji pemahaman audiens." },
-            { id: 7, title: "Reflections and Closing", durationMinutes: 15, activity: "Meminta peserta membagikan insight, merangkum kesimpulan akhir, dan penutupan acara." }
+            { id: 1, title: "Warm Up", durationMinutes: 15, pic: "", activity: "Sambutan, pengecekan audio/visual, ice breaking, dan penyampaian garis besar agenda presentasi hari ini." },
+            { id: 2, title: "XLSMART as a Hyper-Performing Company", durationMinutes: 45, pic: "", activity: "Pembahasan materi inti pertama. Sisihkan 10 menit terakhir untuk sesi Q&A." },
+            { id: 3, title: "Coffee Break / Jeda", durationMinutes: 15, pic: "", activity: "Istirahat sejenak agar audiens dapat meregangkan otot, ketoilet, dan mengembalikan fokus." },
+            { id: 4, title: "Creating a Learning Environment for Innovation", durationMinutes: 40, pic: "", activity: "Pemaparan strategi dan contoh budaya inovasi. Fokuskan pada diskusi interaktif." },
+            { id: 5, title: "Building Greater Empowerment & Accountability", durationMinutes: 35, pic: "", activity: "Pemaparan materi inti terakhir. Sertakan ruang untuk audiens bertanya." },
+            { id: 6, title: "Quiz", durationMinutes: 15, pic: "", activity: "Pelaksanaan kuis interaktif untuk menguji pemahaman audiens." },
+            { id: 7, title: "Reflections and Closing", durationMinutes: 15, pic: "", activity: "Meminta peserta membagikan insight, merangkum kesimpulan akhir, dan penutupan acara." }
         ];
 
         // State Variables
@@ -300,6 +301,13 @@
                             <input type="number" min="1" max="999" class="duration-input w-24 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white font-bold text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all tabular-nums shadow-inner" data-index="${index}" value="${item.durationMinutes}">
                         </div>
                     </td>
+                    <td data-label="PIC" class="p-4 border-b border-slate-700/50 text-center">
+                        <select class="pic-select w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all" data-index="${index}" aria-label="PIC untuk ${item.title}">
+                            <option value="" ${item.pic === "" ? "selected" : ""}>Pilih PIC</option>
+                            <option value="Edy" ${item.pic === "Edy" ? "selected" : ""}>Edy</option>
+                            <option value="Yessy" ${item.pic === "Yessy" ? "selected" : ""}>Yessy</option>
+                        </select>
+                    </td>
                 `;
                 agendaTableBody.appendChild(tr);
                 
@@ -319,6 +327,13 @@
                     agendaData[idx].durationMinutes = newValue;
                     renderTable(); // Re-render untuk memperbarui kalkulasi kolom Waktu
                     updateTotalDuration();
+                });
+            });
+
+            document.querySelectorAll('.pic-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    agendaData[idx].pic = e.target.value;
                 });
             });
         }
